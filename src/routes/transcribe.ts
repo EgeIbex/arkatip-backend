@@ -33,7 +33,7 @@ const handleMulterError = (err: any, req: Request, res: Response, next: NextFunc
     console.error('Multer hatası:', err);
     return res.status(400).json({ error: 'Dosya yükleme hatası', details: err.message });
   } else if (err) {
-    console.error('Dosya yükleme hatası:', err);
+    console.error('Dosya hatası:', err);
     return res.status(400).json({ error: err.message });
   }
   next();
