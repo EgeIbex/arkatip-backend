@@ -11,7 +11,14 @@ export class EntryController {
 
       if (!userId) {
         console.log('GetEntries - User ID bulunamadı');
-        return res.status(401).json({ error: 'Yetkilendirme gerekli' });
+        return res.status(401).json({
+            error: 'Yetkilendirme gerekli - userId yok',
+            debug: {
+              user: req.user,
+              headers: req.headers,
+              authHeader: req.headers.authorization,
+            },
+          });
       }
 
       const entries = await Entry.findByUserId(userId);
@@ -31,7 +38,7 @@ export class EntryController {
 
       if (!userId) {
         console.log('CreateEntry - User ID bulunamadı');
-        return res.status(401).json({ error: 'Yetkilendirme gerekli' });
+        return res.status(401).json({ error: 'Yetkilendirme gerekli 2' });
       }
 
       let interpretation = null;
@@ -66,7 +73,7 @@ export class EntryController {
 
       if (!userId) {
         console.log('UpdateEntry - User ID bulunamadı');
-        return res.status(401).json({ error: 'Yetkilendirme gerekli' });
+        return res.status(401).json({ error: 'Yetkilendirme gerekli 3' });
       }
 
       const entry = await Entry.findById(id);
@@ -92,7 +99,7 @@ export class EntryController {
 
       if (!userId) {
         console.log('DeleteEntry - User ID bulunamadı');
-        return res.status(401).json({ error: 'Yetkilendirme gerekli' });
+        return res.status(401).json({ error: 'Yetkilendirme gerekli 4' });
       }
 
       const entry = await Entry.findById(id);
