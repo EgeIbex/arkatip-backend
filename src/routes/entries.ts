@@ -1,21 +1,19 @@
 import { Router } from 'express';
 import { EntryController } from '../controllers/entryController';
-import { authMiddleware } from '../middleware/auth';
-
-console.log('Entries route yükleniyor...');
+import { auth } from '../middleware/auth';
 
 const router = Router();
 
 // Tüm girişleri getir
-router.get('/', authMiddleware, EntryController.getEntries);
+router.get('/', auth, EntryController.getEntries);
 
 // Yeni giriş oluştur
-router.post('/', authMiddleware, EntryController.createEntry);
+router.post('/', auth, EntryController.createEntry);
 
 // Girişi güncelle
-router.put('/:id', authMiddleware, EntryController.updateEntry);
+router.put('/:id', auth, EntryController.updateEntry);
 
 // Girişi sil
-router.delete('/:id', authMiddleware, EntryController.deleteEntry);
+router.delete('/:id', auth, EntryController.deleteEntry);
 
 export default router; 
