@@ -5,66 +5,61 @@ import { AuthRequest } from '../types';
 
 export const auth = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
+    // 1. Authorization header kontrolü
     const authHeader = req.headers.authorization;
-    console.log('Auth Header:', authHeader);
-
-    if (!authHeader) {
-      console.log('Authorization header bulunamadı');
-      return res.status(401).json({ error: 'Yetkilendirme gerekli auth 1', details: 'Authorization header eksik' });
+    if (!authHeader?.startsWith('Bearer ')) {
+      return res.status(401).json({ 
+        error: 'Yetkilendirme gerekli', 
+        details: 'Geçerli bir Bearer token gerekli' 
+      });
     }
 
+    // 2. Token'ı al
     const token = authHeader.split(' ')[1];
-    console.log('Token:', token);
-
     if (!token) {
-      console.log('Token bulunamadı');
-      return res.status(401).json({ error: 'Yetkilendirme gerekli auth 2', details: 'Token eksik' });
+      return res.status(401).json({ 
+        error: 'Yetkilendirme gerekli', 
+        details: 'Token eksik' 
+      });
     }
 
+    // 3. JWT_SECRET kontrolü
     if (!process.env.JWT_SECRET) {
       console.error('JWT_SECRET tanımlı değil!');
-      return res.status(500).json({ error: 'Sunucu hatası', details: 'JWT_SECRET tanımlı değil' });
+      return res.status(500).json({ 
+        error: 'Sunucu hatası', 
+        details: 'JWT_SECRET tanımlı değil' 
+      });
     }
 
-    console.log('JWT_SECRET uzunluğu:', process.env.JWT_SECRET.length);
-    console.log('JWT_SECRET ilk 5 karakteri:', process.env.JWT_SECRET.substring(0, 5));
-    console.log('JWT_SECRET son 5 karakteri:', process.env.JWT_SECRET.substring(process.env.JWT_SECRET.length - 5));
-
     try {
-      console.log('Token doğrulanıyor...');
-      console.log('Token içeriği (decode edilmiş):', jwt.decode(token));
+      // 4. Token'ı doğrula
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      console.log('Token doğrulandı:', decoded);
-
+      
+      // 5. Token içeriğini kontrol et
       if (typeof decoded === 'object' && 'userId' in decoded) {
+        // 6. User bilgisini request'e ekle
         req.user = { userId: decoded.userId as string };
-        console.log('User ID atandı:', req.user.userId);
         next();
       } else {
-        console.log('Token içeriği geçersiz:', decoded);
-        console.log('Token içeriği tipi:', typeof decoded);
-        console.log('Token içeriği anahtarları:', Object.keys(decoded));
-        return res.status(401).json({ error: 'Yetkilendirme gerekli auth 3', details: 'Token içeriği geçersiz' });
+        return res.status(401).json({ 
+          error: 'Yetkilendirme gerekli', 
+          details: 'Geçersiz token içeriği' 
+        });
       }
     } catch (error) {
       if (error instanceof TokenExpiredError) {
-        console.log('Token süresi dolmuş:', error.message);
-        console.log('Token süresi:', error.expiredAt);
         return res.status(401).json({ 
-          error: 'Yetkilendirme gerekli auth 4', 
+          error: 'Yetkilendirme gerekli', 
           details: 'Token süresi dolmuş',
           expiredAt: error.expiredAt
         });
       }
       if (error instanceof JsonWebTokenError) {
-        console.log('Token doğrulama hatası:', error.message);
-        console.log('Hata tipi:', error.name);
-        console.log('Hata detayları:', error.stack);
         return res.status(401).json({ 
-          error: 'Yetkilendirme gerekli auth 5', 
-          details: 'Token doğrulama hatası',
-          message: error.message,
-          type: error.name
+          error: 'Yetkilendirme gerekli', 
+          details: 'Geçersiz token',
+          message: error.message
         });
       }
       throw error;
