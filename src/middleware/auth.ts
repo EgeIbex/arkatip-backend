@@ -26,6 +26,9 @@ export const auth = async (req: AuthRequest, res: Response, next: NextFunction) 
       return res.status(500).json({ error: 'Sunucu hatası', details: 'JWT_SECRET tanımlı değil' });
     }
 
+    console.log('JWT_SECRET uzunluğu:', process.env.JWT_SECRET.length);
+    console.log('JWT_SECRET ilk 5 karakteri:', process.env.JWT_SECRET.substring(0, 5));
+
     try {
       console.log('Token doğrulanıyor...');
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -42,6 +45,7 @@ export const auth = async (req: AuthRequest, res: Response, next: NextFunction) 
     } catch (error) {
       if (error instanceof TokenExpiredError) {
         console.log('Token süresi dolmuş:', error.message);
+        console.log('Token süresi:', error.expiredAt);
         return res.status(401).json({ 
           error: 'Yetkilendirme gerekli', 
           details: 'Token süresi dolmuş',
@@ -50,10 +54,13 @@ export const auth = async (req: AuthRequest, res: Response, next: NextFunction) 
       }
       if (error instanceof JsonWebTokenError) {
         console.log('Token doğrulama hatası:', error.message);
+        console.log('Hata tipi:', error.name);
+        console.log('Hata detayları:', error.stack);
         return res.status(401).json({ 
           error: 'Yetkilendirme gerekli', 
           details: 'Token doğrulama hatası',
-          message: error.message
+          message: error.message,
+          type: error.name
         });
       }
       throw error;
