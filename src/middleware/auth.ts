@@ -10,7 +10,7 @@ export const auth = async (req: AuthRequest, res: Response, next: NextFunction) 
 
     if (!authHeader) {
       console.log('Authorization header bulunamadı');
-      return res.status(401).json({ error: 'Yetkilendirme gerekli', details: 'Authorization header eksik' });
+      return res.status(401).json({ error: 'Yetkilendirme gerekli auth 1', details: 'Authorization header eksik' });
     }
 
     const token = authHeader.split(' ')[1];
@@ -18,7 +18,7 @@ export const auth = async (req: AuthRequest, res: Response, next: NextFunction) 
 
     if (!token) {
       console.log('Token bulunamadı');
-      return res.status(401).json({ error: 'Yetkilendirme gerekli', details: 'Token eksik' });
+      return res.status(401).json({ error: 'Yetkilendirme gerekli auth 2', details: 'Token eksik' });
     }
 
     if (!process.env.JWT_SECRET) {
@@ -40,14 +40,14 @@ export const auth = async (req: AuthRequest, res: Response, next: NextFunction) 
         next();
       } else {
         console.log('Token içeriği geçersiz:', decoded);
-        return res.status(401).json({ error: 'Yetkilendirme gerekli', details: 'Token içeriği geçersiz' });
+        return res.status(401).json({ error: 'Yetkilendirme gerekli auth 3', details: 'Token içeriği geçersiz' });
       }
     } catch (error) {
       if (error instanceof TokenExpiredError) {
         console.log('Token süresi dolmuş:', error.message);
         console.log('Token süresi:', error.expiredAt);
         return res.status(401).json({ 
-          error: 'Yetkilendirme gerekli', 
+          error: 'Yetkilendirme gerekli auth 4', 
           details: 'Token süresi dolmuş',
           expiredAt: error.expiredAt
         });
@@ -57,7 +57,7 @@ export const auth = async (req: AuthRequest, res: Response, next: NextFunction) 
         console.log('Hata tipi:', error.name);
         console.log('Hata detayları:', error.stack);
         return res.status(401).json({ 
-          error: 'Yetkilendirme gerekli', 
+          error: 'Yetkilendirme gerekli auth 5', 
           details: 'Token doğrulama hatası',
           message: error.message,
           type: error.name

@@ -12,7 +12,7 @@ export class EntryController {
       if (!userId) {
         console.log('GetEntries - User ID bulunamadı');
         return res.status(401).json({
-            error: 'Yetkilendirme gerekli - userId yok',
+            error: 'Yetkilendirme gerekli 1 - userId yok',
             debug: {
               user: req.user,
               headers: req.headers,
