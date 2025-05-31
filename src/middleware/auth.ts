@@ -23,46 +23,97 @@ const writeLog = (message: string) => {
   fs.appendFileSync(logFile, logMessage);
 };
 
+interface DebugInfo {
+  step: string;
+  authHeader?: string;
+  timestamp: string;
+  requestInfo: {
+    method: string;
+    path: string;
+    headers: any;
+    ip?: string;
+  };
+  token?: {
+    full: string;
+    length: number;
+    first10: string;
+    last10: string;
+  };
+  jwtSecret?: {
+    length: number;
+    first5: string;
+    last5: string;
+  };
+  decodedWithoutVerify?: any;
+  decoded?: any;
+  userId?: string;
+  error?: string;
+  errorType?: string;
+  errorDetails?: {
+    message: string;
+    name: string;
+  };
+  expiredAt?: Date;
+}
+
 export const auth = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     // 1. Authorization header kontrolü
     const authHeader = req.headers.authorization;
-    const debugInfo: any = {
+    const debugInfo: DebugInfo = {
       step: '1. Auth Header Kontrolü',
       authHeader: authHeader,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      requestInfo: {
+        method: req.method,
+        path: req.path,
+        headers: req.headers,
+        ip: req.ip
+      }
     };
 
     if (!authHeader?.startsWith('Bearer ')) {
-      debugInfo.error = 'Bearer token bulunamadı';
       return res.status(401).json({ 
         error: 'Yetkilendirme gerekli', 
         details: 'Geçerli bir Bearer token gerekli',
-        debug: debugInfo
+        debug: {
+          ...debugInfo,
+          error: 'Bearer token bulunamadı',
+          authHeader: authHeader
+        }
       });
     }
 
     // 2. Token'ı al
     const token = authHeader.split(' ')[1];
     debugInfo.step = '2. Token Alındı';
-    debugInfo.token = token;
+    debugInfo.token = {
+      full: token,
+      length: token.length,
+      first10: token.substring(0, 10),
+      last10: token.substring(token.length - 10)
+    };
 
     if (!token) {
-      debugInfo.error = 'Token bulunamadı';
       return res.status(401).json({ 
         error: 'Yetkilendirme gerekli', 
         details: 'Token eksik',
-        debug: debugInfo
+        debug: {
+          ...debugInfo,
+          error: 'Token bulunamadı'
+        }
       });
     }
 
     // 3. JWT_SECRET kontrolü
     if (!process.env.JWT_SECRET) {
-      debugInfo.error = 'JWT_SECRET tanımlı değil';
       return res.status(500).json({ 
         error: 'Sunucu hatası', 
         details: 'JWT_SECRET tanımlı değil',
-        debug: debugInfo
+        debug: {
+          ...debugInfo,
+          error: 'JWT_SECRET tanımlı değil'
+        }
       });
     }
 
@@ -92,12 +143,14 @@ export const auth = async (req: AuthRequest, res: Response, next: NextFunction) 
         debugInfo.userId = req.user.userId;
         next();
       } else {
-        debugInfo.error = 'Geçersiz token içeriği';
-        debugInfo.decoded = decoded;
         return res.status(401).json({ 
           error: 'Yetkilendirme gerekli', 
           details: 'Geçersiz token içeriği',
-          debug: debugInfo
+          debug: {
+            ...debugInfo,
+            error: 'Geçersiz token içeriği',
+            decoded: decoded
+          }
         });
       }
     } catch (error) {
@@ -105,40 +158,50 @@ export const auth = async (req: AuthRequest, res: Response, next: NextFunction) 
       debugInfo.error = error instanceof Error ? error.message : 'Bilinmeyen hata';
       
       if (error instanceof TokenExpiredError) {
-        debugInfo.errorType = 'TokenExpiredError';
-        debugInfo.expiredAt = error.expiredAt;
         return res.status(401).json({ 
           error: 'Yetkilendirme gerekli', 
           details: 'Token süresi dolmuş',
           expiredAt: error.expiredAt,
-          debug: debugInfo
+          debug: {
+            ...debugInfo,
+            errorType: 'TokenExpiredError',
+            expiredAt: error.expiredAt,
+            message: error.message
+          }
         });
       }
       if (error instanceof JsonWebTokenError) {
-        debugInfo.errorType = 'JsonWebTokenError';
-        debugInfo.errorDetails = {
-          message: error.message,
-          name: error.name
-        };
         return res.status(401).json({ 
           error: 'Yetkilendirme gerekli', 
           details: 'Geçersiz token',
           message: error.message,
-          debug: debugInfo
+          debug: {
+            ...debugInfo,
+            errorType: 'JsonWebTokenError',
+            errorDetails: {
+              message: error.message,
+              name: error.name
+            }
+          }
         });
       }
       throw error;
     }
   } catch (error) {
-    const debugInfo = {
-      step: '8. Genel Hata',
-      error: error instanceof Error ? error.message : 'Bilinmeyen hata',
-      timestamp: new Date().toISOString()
-    };
     return res.status(500).json({ 
       error: 'Sunucu hatası',
       details: error instanceof Error ? error.message : 'Bilinmeyen hata',
-      debug: debugInfo
+      debug: {
+        step: '8. Genel Hata',
+        error: error instanceof Error ? error.message : 'Bilinmeyen hata',
+        timestamp: new Date().toISOString(),
+        requestInfo: {
+          method: req.method,
+          path: req.path,
+          headers: req.headers,
+          ip: req.ip
+        }
+      }
     });
   }
 }; 
