@@ -6,7 +6,7 @@ import { AuthRequest } from '../types';
 export class EntryController {
   static async getEntries(req: AuthRequest, res: Response) {
     try {
-      const userId = req.user?.id;
+      const userId = req.user?.userId;
       console.log('GetEntries - User ID:', userId);
 
       if (!userId) {
@@ -33,7 +33,7 @@ export class EntryController {
   static async createEntry(req: AuthRequest, res: Response) {
     try {
       const { content } = req.body;
-      const userId = req.user?.id;
+      const userId = req.user?.userId;
       console.log('CreateEntry - User ID:', userId);
 
       if (!userId) {
@@ -68,7 +68,7 @@ export class EntryController {
     try {
       const { id } = req.params;
       const { content } = req.body;
-      const userId = req.user?.id;
+      const userId = req.user?.userId;
       console.log('UpdateEntry - User ID:', userId);
 
       if (!userId) {
@@ -94,7 +94,7 @@ export class EntryController {
   static async deleteEntry(req: AuthRequest, res: Response) {
     try {
       const { id } = req.params;
-      const userId = req.user?.id;
+      const userId = req.user?.userId;
       console.log('DeleteEntry - User ID:', userId);
 
       if (!userId) {

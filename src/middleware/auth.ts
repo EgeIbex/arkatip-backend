@@ -28,18 +28,22 @@ export const auth = async (req: AuthRequest, res: Response, next: NextFunction) 
 
     console.log('JWT_SECRET uzunluğu:', process.env.JWT_SECRET.length);
     console.log('JWT_SECRET ilk 5 karakteri:', process.env.JWT_SECRET.substring(0, 5));
+    console.log('JWT_SECRET son 5 karakteri:', process.env.JWT_SECRET.substring(process.env.JWT_SECRET.length - 5));
 
     try {
       console.log('Token doğrulanıyor...');
+      console.log('Token içeriği (decode edilmiş):', jwt.decode(token));
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       console.log('Token doğrulandı:', decoded);
 
       if (typeof decoded === 'object' && 'userId' in decoded) {
-        req.user = { id: decoded.userId as string };
-        console.log('User ID atandı:', req.user.id);
+        req.user = { userId: decoded.userId as string };
+        console.log('User ID atandı:', req.user.userId);
         next();
       } else {
         console.log('Token içeriği geçersiz:', decoded);
+        console.log('Token içeriği tipi:', typeof decoded);
+        console.log('Token içeriği anahtarları:', Object.keys(decoded));
         return res.status(401).json({ error: 'Yetkilendirme gerekli auth 3', details: 'Token içeriği geçersiz' });
       }
     } catch (error) {
