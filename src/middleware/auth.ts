@@ -118,24 +118,28 @@ export const auth = async (req: AuthRequest, res: Response, next: NextFunction) 
     })}`);
 
     try {
-      // 4. Token'ı doğrula
-      addLog('4. Token doğrulanıyor...');
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      addLog(`4.1 Token doğrulandı: ${JSON.stringify(decoded)}`);
+      // 4. Token'ı decode et (doğrulama olmadan)
+      const decodedWithoutVerify = jwt.decode(token);
+      addLog(`4.1 Token decode (verify olmadan): ${JSON.stringify(decodedWithoutVerify)}`);
       
-      // 5. Token içeriğini kontrol et
+      // 5. Token'ı doğrula
+      addLog('5. Token doğrulanıyor...');
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      addLog(`5.1 Token doğrulandı: ${JSON.stringify(decoded)}`);
+      
+      // 6. Token içeriğini kontrol et
       if (typeof decoded === 'object' && 'userId' in decoded) {
-        // 6. User bilgisini request'e ekle
+        // 7. User bilgisini request'e ekle
         req.user = { userId: decoded.userId as string };
-        addLog(`5.1 User ID atandı: ${req.user.userId}`);
+        addLog(`6.1 User ID atandı: ${req.user.userId}`);
         next();
       } else {
-        addLog(`5.2 Geçersiz token içeriği: ${JSON.stringify(decoded)}`);
+        addLog(`6.2 Geçersiz token içeriği: ${JSON.stringify(decoded)}`);
         return res.status(401).json({ 
           error: 'Yetkilendirme gerekli', 
           details: 'Geçersiz token içeriği',
           debug: { 
-            step: '5.2', 
+            step: '6', 
             error: 'Geçersiz token içeriği',
             decoded: decoded,
             logs: logs
@@ -143,10 +147,10 @@ export const auth = async (req: AuthRequest, res: Response, next: NextFunction) 
         });
       }
     } catch (error) {
-      addLog(`6. Token doğrulama hatası: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`);
+      addLog(`7. Token doğrulama hatası: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`);
       
       if (error instanceof TokenExpiredError) {
-        addLog(`6.1 Token süresi dolmuş: ${JSON.stringify({
+        addLog(`7.1 Token süresi dolmuş: ${JSON.stringify({
           message: error.message,
           expiredAt: error.expiredAt
         })}`);
@@ -155,7 +159,7 @@ export const auth = async (req: AuthRequest, res: Response, next: NextFunction) 
           details: 'Token süresi dolmuş',
           expiredAt: error.expiredAt,
           debug: { 
-            step: '6.1', 
+            step: '7.1', 
             error: 'Token süresi dolmuş',
             message: error.message,
             expiredAt: error.expiredAt,
@@ -164,7 +168,7 @@ export const auth = async (req: AuthRequest, res: Response, next: NextFunction) 
         });
       }
       if (error instanceof JsonWebTokenError) {
-        addLog(`6.2 JWT hatası: ${JSON.stringify({
+        addLog(`7.2 JWT hatası: ${JSON.stringify({
           message: error.message,
           name: error.name
         })}`);
@@ -173,7 +177,7 @@ export const auth = async (req: AuthRequest, res: Response, next: NextFunction) 
           details: 'Geçersiz token',
           message: error.message,
           debug: { 
-            step: '6.2', 
+            step: '7.2', 
             error: 'JWT hatası',
             message: error.message,
             name: error.name,
@@ -184,12 +188,12 @@ export const auth = async (req: AuthRequest, res: Response, next: NextFunction) 
       throw error;
     }
   } catch (error) {
-    addLog(`7. Genel hata: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`);
+    addLog(`8. Genel hata: ${error instanceof Error ? error.message : 'Bilinmeyen hata'}`);
     return res.status(500).json({ 
       error: 'Sunucu hatası',
       details: error instanceof Error ? error.message : 'Bilinmeyen hata',
       debug: { 
-        step: '7', 
+        step: '8', 
         error: error instanceof Error ? error.message : 'Bilinmeyen hata',
         logs: logs
       }
