@@ -1,17 +1,21 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { Entry } from '../models/entry';
 import { InterpretationService } from '../services/interpretationService';
-import { AuthenticatedRequest } from '../types/express';
+import { AuthRequest } from '../types';
 
 export class EntryController {
-  static async getEntries(req: AuthenticatedRequest, res: Response) {
+  static async getEntries(req: AuthRequest, res: Response) {
     try {
       const userId = req.user?.id;
+      console.log('GetEntries - User ID:', userId);
+
       if (!userId) {
+        console.log('GetEntries - User ID bulunamadı');
         return res.status(401).json({ error: 'Yetkilendirme gerekli' });
       }
 
       const entries = await Entry.findByUserId(userId);
+      console.log('GetEntries - Bulunan giriş sayısı:', entries.length);
       res.json(entries);
     } catch (error) {
       console.error('Girişler getirilirken hata:', error);
@@ -19,12 +23,14 @@ export class EntryController {
     }
   }
 
-  static async createEntry(req: AuthenticatedRequest, res: Response) {
+  static async createEntry(req: AuthRequest, res: Response) {
     try {
       const { content } = req.body;
       const userId = req.user?.id;
+      console.log('CreateEntry - User ID:', userId);
 
       if (!userId) {
+        console.log('CreateEntry - User ID bulunamadı');
         return res.status(401).json({ error: 'Yetkilendirme gerekli' });
       }
 
@@ -32,7 +38,7 @@ export class EntryController {
       try {
         interpretation = await InterpretationService.interpretDream(content);
       } catch (interpretError) {
-        // Yorumlama hatası olsa bile rüyayı kaydet
+        console.error('Yorumlama hatası:', interpretError);
         interpretation = 'Yorum yapılamadı.';
       }
 
@@ -43,6 +49,7 @@ export class EntryController {
         date: new Date()
       });
 
+      console.log('CreateEntry - Yeni giriş oluşturuldu:', entry.id);
       res.status(201).json(entry);
     } catch (error) {
       console.error('Rüya kaydetme hatası:', error);
@@ -50,22 +57,26 @@ export class EntryController {
     }
   }
 
-  static async updateEntry(req: AuthenticatedRequest, res: Response) {
+  static async updateEntry(req: AuthRequest, res: Response) {
     try {
       const { id } = req.params;
       const { content } = req.body;
       const userId = req.user?.id;
+      console.log('UpdateEntry - User ID:', userId);
 
       if (!userId) {
+        console.log('UpdateEntry - User ID bulunamadı');
         return res.status(401).json({ error: 'Yetkilendirme gerekli' });
       }
 
       const entry = await Entry.findById(id);
       if (!entry || entry.userId !== userId) {
+        console.log('UpdateEntry - Giriş bulunamadı veya yetkisiz erişim');
         return res.status(404).json({ error: 'Giriş bulunamadı' });
       }
 
       const updatedEntry = await Entry.update(id, { content });
+      console.log('UpdateEntry - Giriş güncellendi:', id);
       res.json(updatedEntry);
     } catch (error) {
       console.error('Giriş güncellenirken hata:', error);
@@ -73,21 +84,25 @@ export class EntryController {
     }
   }
 
-  static async deleteEntry(req: AuthenticatedRequest, res: Response) {
+  static async deleteEntry(req: AuthRequest, res: Response) {
     try {
       const { id } = req.params;
       const userId = req.user?.id;
+      console.log('DeleteEntry - User ID:', userId);
 
       if (!userId) {
+        console.log('DeleteEntry - User ID bulunamadı');
         return res.status(401).json({ error: 'Yetkilendirme gerekli' });
       }
 
       const entry = await Entry.findById(id);
       if (!entry || entry.userId !== userId) {
+        console.log('DeleteEntry - Giriş bulunamadı veya yetkisiz erişim');
         return res.status(404).json({ error: 'Giriş bulunamadı' });
       }
 
       await Entry.delete(id);
+      console.log('DeleteEntry - Giriş silindi:', id);
       res.status(204).send();
     } catch (error) {
       console.error('Giriş silinirken hata:', error);
