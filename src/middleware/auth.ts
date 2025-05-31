@@ -32,8 +32,8 @@ export const auth = async (req: AuthRequest, res: Response, next: NextFunction) 
       console.log('Token doğrulandı:', decoded);
 
       if (typeof decoded === 'object' && 'userId' in decoded) {
-        req.userId = decoded.userId;
-        console.log('userId atandı:', req.userId);
+        req.user = { id: decoded.userId };
+        console.log('User ID atandı:', req.user.id);
         next();
       } else {
         console.log('Token içeriği geçersiz:', decoded);
