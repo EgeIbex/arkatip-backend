@@ -60,147 +60,121 @@ export const auth = async (req: AuthRequest, res: Response, next: NextFunction) 
   try {
     // 1. Authorization header kontrolü
     const authHeader = req.headers.authorization;
-    const debugInfo: DebugInfo = {
-      step: '1. Auth Header Kontrolü',
-      authHeader: authHeader,
-      timestamp: new Date().toISOString(),
-      requestInfo: {
-        method: req.method,
-        path: req.path,
-        headers: req.headers,
-        ip: req.ip
-      }
-    };
+    console.log('1. Auth Header:', authHeader);
 
     if (!authHeader?.startsWith('Bearer ')) {
+      console.log('1.1 Bearer token bulunamadı');
       return res.status(401).json({ 
         error: 'Yetkilendirme gerekli', 
         details: 'Geçerli bir Bearer token gerekli',
-        debug: {
-          ...debugInfo,
-          error: 'Bearer token bulunamadı',
-          authHeader: authHeader
-        }
+        debug: { step: '1.1', error: 'Bearer token bulunamadı' }
       });
     }
 
     // 2. Token'ı al
     const token = authHeader.split(' ')[1];
-    debugInfo.step = '2. Token Alındı';
-    debugInfo.token = {
-      full: token,
-      length: token.length,
-      first10: token.substring(0, 10),
-      last10: token.substring(token.length - 10)
-    };
+    console.log('2. Token:', token);
 
     if (!token) {
+      console.log('2.1 Token bulunamadı');
       return res.status(401).json({ 
         error: 'Yetkilendirme gerekli', 
         details: 'Token eksik',
-        debug: {
-          ...debugInfo,
-          error: 'Token bulunamadı'
-        }
+        debug: { step: '2.1', error: 'Token bulunamadı' }
       });
     }
 
     // 3. JWT_SECRET kontrolü
     if (!process.env.JWT_SECRET) {
+      console.error('3.1 JWT_SECRET tanımlı değil!');
       return res.status(500).json({ 
         error: 'Sunucu hatası', 
         details: 'JWT_SECRET tanımlı değil',
-        debug: {
-          ...debugInfo,
-          error: 'JWT_SECRET tanımlı değil'
-        }
+        debug: { step: '3.1', error: 'JWT_SECRET tanımlı değil' }
       });
     }
 
-    debugInfo.step = '3. JWT_SECRET Kontrolü';
-    debugInfo.jwtSecret = {
+    console.log('3.2 JWT_SECRET:', {
       length: process.env.JWT_SECRET.length,
       first5: process.env.JWT_SECRET.substring(0, 5),
       last5: process.env.JWT_SECRET.substring(process.env.JWT_SECRET.length - 5)
-    };
+    });
 
     try {
       // 4. Token'ı decode et (doğrulama olmadan)
       const decodedWithoutVerify = jwt.decode(token);
-      debugInfo.step = '4. Token Decode';
-      debugInfo.decodedWithoutVerify = decodedWithoutVerify;
+      console.log('4. Token decode (verify olmadan):', decodedWithoutVerify);
 
       // 5. Token'ı doğrula
-      debugInfo.step = '5. Token Doğrulama';
+      console.log('5. Token doğrulanıyor...');
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      debugInfo.decoded = decoded;
+      console.log('5.1 Token doğrulandı:', decoded);
       
       // 6. Token içeriğini kontrol et
       if (typeof decoded === 'object' && 'userId' in decoded) {
         // 7. User bilgisini request'e ekle
         req.user = { userId: decoded.userId as string };
-        debugInfo.step = '6. User ID Atandı';
-        debugInfo.userId = req.user.userId;
+        console.log('6.1 User ID atandı:', req.user.userId);
         next();
       } else {
+        console.log('6.2 Geçersiz token içeriği:', decoded);
         return res.status(401).json({ 
           error: 'Yetkilendirme gerekli', 
           details: 'Geçersiz token içeriği',
-          debug: {
-            ...debugInfo,
+          debug: { 
+            step: '6.2', 
             error: 'Geçersiz token içeriği',
             decoded: decoded
           }
         });
       }
     } catch (error) {
-      debugInfo.step = '7. Token Doğrulama Hatası';
-      debugInfo.error = error instanceof Error ? error.message : 'Bilinmeyen hata';
+      console.error('7. Token doğrulama hatası:', error);
       
       if (error instanceof TokenExpiredError) {
+        console.log('7.1 Token süresi dolmuş:', {
+          message: error.message,
+          expiredAt: error.expiredAt
+        });
         return res.status(401).json({ 
           error: 'Yetkilendirme gerekli', 
           details: 'Token süresi dolmuş',
           expiredAt: error.expiredAt,
-          debug: {
-            ...debugInfo,
-            errorType: 'TokenExpiredError',
-            expiredAt: error.expiredAt,
-            message: error.message
+          debug: { 
+            step: '7.1', 
+            error: 'Token süresi dolmuş',
+            message: error.message,
+            expiredAt: error.expiredAt
           }
         });
       }
       if (error instanceof JsonWebTokenError) {
+        console.log('7.2 JWT hatası:', {
+          message: error.message,
+          name: error.name
+        });
         return res.status(401).json({ 
           error: 'Yetkilendirme gerekli', 
           details: 'Geçersiz token',
           message: error.message,
-          debug: {
-            ...debugInfo,
-            errorType: 'JsonWebTokenError',
-            errorDetails: {
-              message: error.message,
-              name: error.name
-            }
+          debug: { 
+            step: '7.2', 
+            error: 'JWT hatası',
+            message: error.message,
+            name: error.name
           }
         });
       }
       throw error;
     }
   } catch (error) {
+    console.error('8. Genel hata:', error);
     return res.status(500).json({ 
       error: 'Sunucu hatası',
       details: error instanceof Error ? error.message : 'Bilinmeyen hata',
-      debug: {
-        step: '8. Genel Hata',
-        error: error instanceof Error ? error.message : 'Bilinmeyen hata',
-        timestamp: new Date().toISOString(),
-        requestInfo: {
-          method: req.method,
-          path: req.path,
-          headers: req.headers,
-          ip: req.ip
-        }
+      debug: { 
+        step: '8', 
+        error: error instanceof Error ? error.message : 'Bilinmeyen hata'
       }
     });
   }
